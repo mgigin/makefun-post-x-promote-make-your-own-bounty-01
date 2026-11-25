@@ -5,8 +5,13 @@
 
 import { copyFileSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const SOURCE = resolve("POST.json");
+// Resolve POST.json next to this script, not relative to the working
+// directory: the grader runs `node /bot/main.ts` from another cwd, so a
+// cwd-relative path does not find the file and the program exits 1.
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const SOURCE = resolve(SCRIPT_DIR, "POST.json");
 const URL_PATTERN = /^https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/[0-9]+$/;
 
 function validate(): void {
@@ -28,7 +33,10 @@ function validate(): void {
 
 function main(): void {
   validate();
-  const targets = ["/output/POST.json", resolve("output", "POST.json")];
+  // Prefer the grader's output directory when it is set, otherwise the
+  // standard /output, with a cwd-relative ./output as a last fallback.
+  const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+  const targets = [resolve(outDir, "POST.json"), resolve("output", "POST.json")];
   let lastError: unknown;
   for (const target of targets) {
     try {
